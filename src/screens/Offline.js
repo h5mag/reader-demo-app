@@ -5,9 +5,12 @@ import { MainBundlePath, DocumentDirectoryPath } from 'react-native-fs';
 import EditionMenu from '../components/EditionMenu';
 import styles from '../css/style';
 import H5mag from '@h5mag/react-native-h5mag';
+import { useQueryClient } from 'react-query';
 
 export default function Offline({ route, navigation }) {
 	const { edition, projectDomain } = route.params;
+
+	const queryClient = useQueryClient();
 
 	const osPath = Platform.OS === 'android' ? DocumentDirectoryPath : MainBundlePath;
 	const targetPath = (Platform.OS === 'android' ? DocumentDirectoryPath : MainBundlePath) + '/' + projectDomain + edition.path;
@@ -21,7 +24,7 @@ export default function Offline({ route, navigation }) {
 				<EditionMenu edition={edition} projectDomain={projectDomain} navigation={navigation} route={route} onChangeFavorite={onChangeEdition} onChangeDownloaded={onChangeEdition} inNavigation={true} />
 			),
 		});
-	}, [navigation]);
+	}, [edition, navigation, projectDomain, route]);
 
 	useEffect(() => {
 		H5mag.readEditionOffline(osPath, targetPath, 8086).then((result) => {
@@ -37,6 +40,8 @@ export default function Offline({ route, navigation }) {
 		navigation.setParams({
 			edition: e,
 		});
+		queryClient.setQueryData(['editions.favorite', e.href], () => { return e.favorite; });
+		queryClient.setQueryData(['editions.status', e.href], () => { return e.status; });
 		if (!e.downloaded) {
 			navigation.popToTop();
 			navigation.navigate('Downloads', { projectDomain: projectDomain });

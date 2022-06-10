@@ -1,8 +1,8 @@
 import SQLite from 'react-native-sqlite-storage';
 import { DB_NAME, DB_LOCATION } from '../../config';
+
 SQLite.DEBUG(true);
 SQLite.enablePromise(true);
-
 let db;
 
 const successCB = () => {
@@ -12,26 +12,34 @@ const successCB = () => {
 const errorCB = (err) => {
 	console.log('error: ', err);
 };
-
-const closeDatabase = () => {
-	if (db) {
-		console.log('Closing database ...');
-		db.close().then((status) => {
-			console.log('Database CLOSED');
-		}).catch((error) => {
-			errorCB(error);
-		});
-	} else {
-		console.log('Database was not OPENED');
+class DbQuery {
+	async openDatabase() {
+		if (!db) {
+			SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
+				db = DB;
+			});
+		}
 	}
-};
 
-export const findAllProjectsInDb = async () => {
-	return SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
+	closeDatabase() {
+		if (db) {
+			console.log('Closing database ...');
+			db.close().then((status) => {
+				console.log('Database CLOSED');
+			}).catch((error) => {
+				this.errorCB(error);
+			});
+		} else {
+			console.log('Database was not OPENED');
+		}
+	}
+
+	async findAllProjectsInDb() {
+		await this.openDatabase();
+
 		let projects = [];
 
-		return DB.transaction(async (tx) => {
-			db = DB;
+		return db.transaction(async (tx) => {
 			await tx.executeSql('SELECT * FROM Projects', []).then(([tx, results]) => {
 				var len = results.rows.length;
 				for (let i = 0; i < len; i++) {
@@ -41,18 +49,16 @@ export const findAllProjectsInDb = async () => {
 				console.log(error);
 			});
 		}).then(() => {
-			closeDatabase();
 			return projects;
 		});
-	});
-};
+	}
 
-export const findAllEditionsInDb = async () => {
-	return SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
+	async findAllEditionsInDb() {
+		await this.openDatabase();
+
 		let editions = [];
 
-		return DB.transaction(async (tx) => {
-			db = DB;
+		return db.transaction(async (tx) => {
 			await tx.executeSql('SELECT * FROM Editions', []).then(([tx, results]) => {
 				var len = results.rows.length;
 				for (let i = 0; i < len; i++) {
@@ -62,18 +68,32 @@ export const findAllEditionsInDb = async () => {
 				console.log(error);
 			});
 		}).then(() => {
-			closeDatabase();
 			return editions;
 		});
-	});
-};
+	}
 
-export const findAllFavoriteEditionsInDb = async () => {
-	return SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
+	async findOneEditionInDb(edition) {
+		await this.openDatabase();
+
+		let ed = null;
+
+		return db.transaction(async (tx) => {
+			await tx.executeSql('SELECT * FROM Editions WHERE href = ? LIMIT 1', [edition.href]).then(([tx, results]) => {
+				ed = results.rows.item(0);
+			}).catch((error) => {
+				console.log(error);
+			});
+		}).then(() => {
+			return ed;
+		});
+	}
+
+	async findAllFavoriteEditionsInDb() {
+		await this.openDatabase();
+
 		let editions = [];
 
-		return DB.transaction(async (tx) => {
-			db = DB;
+		return db.transaction(async (tx) => {
 			await tx.executeSql('SELECT * FROM Editions WHERE favorite = 1', []).then(([tx, results]) => {
 				var len = results.rows.length;
 				for (let i = 0; i < len; i++) {
@@ -83,18 +103,16 @@ export const findAllFavoriteEditionsInDb = async () => {
 				console.log(error);
 			});
 		}).then(() => {
-			closeDatabase();
 			return editions;
 		});
-	});
-};
+	}
 
-export const findAllDownloadedEditionsInDb = async () => {
-	return SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
+	async findAllDownloadedEditionsInDb() {
+		await this.openDatabase();
+
 		let editions = [];
 
-		return DB.transaction(async (tx) => {
-			db = DB;
+		return db.transaction(async (tx) => {
 			await tx.executeSql('SELECT * FROM Editions WHERE downloaded = 1', []).then(([tx, results]) => {
 				var len = results.rows.length;
 				for (let i = 0; i < len; i++) {
@@ -104,83 +122,50 @@ export const findAllDownloadedEditionsInDb = async () => {
 				console.log(error);
 			});
 		}).then(() => {
-			closeDatabase();
 			return editions;
 		});
-	});
-};
+	}
 
-export const insertEditionFavoriteInDb = async (edition, projectDomain) => {
-	edition.favorite = true;
+	async insertEditionFavoriteInDb(edition, projectDomain, favorite) {
+		await this.openDatabase();
 
-	SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
-		DB.transaction((tx) => {
-			db = DB;
-			tx.executeSql('INSERT OR REPLACE INTO Editions (projectDomain, custom_image_src, description, href, path, published, screenshot_src, tags, title, favorite, downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				[projectDomain, edition.custom_image_src, edition.description, edition.href, edition.path, edition.published, edition.screenshot_src, toString(edition.tags), edition.title, edition.favorite, edition.downloaded]
+		db.transaction((tx) => {
+			tx.executeSql('INSERT OR REPLACE INTO Editions (projectDomain, custom_image_src, description, href, path, published, screenshot_src, tags, title, favorite, downloaded, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+				[projectDomain, edition.custom_image_src, edition.description, edition.href, edition.path, edition.published, edition.screenshot_src, toString(edition.tags), edition.title, favorite, edition.downloaded, edition.status]
 			);
-		}).then(() => {
-			closeDatabase();
-		});
-	});
-};
+		}).then(() => { });
 
-export const removeEditionFavoriteFromDb = async (edition, projectDomain) => {
-	edition.favorite = false;
+		return { ...edition, favorite: favorite };
+	}
 
-	SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
-		DB.transaction((tx) => {
-			db = DB;
-			tx.executeSql('INSERT OR REPLACE INTO Editions (projectDomain, custom_image_src, description, href, path, published, screenshot_src, tags, title, favorite, downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				[projectDomain, edition.custom_image_src, edition.description, edition.href, edition.path, edition.published, edition.screenshot_src, toString(edition.tags), edition.title, edition.favorite, edition.downloaded]
+	async insertEditionDownloadInDb(edition, projectDomain, status = 'downloaded') {
+		await this.openDatabase();
+
+		db.transaction((tx) => {
+			tx.executeSql('INSERT OR REPLACE INTO Editions (projectDomain, custom_image_src, description, href, path, published, screenshot_src, tags, title, favorite, downloaded, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+				[projectDomain, edition.custom_image_src, edition.description, edition.href, edition.path, edition.published, edition.screenshot_src, toString(edition.tags), edition.title, edition.favorite, status === 'downloaded', status]
 			);
-		}).then(() => {
-			closeDatabase();
-		});
-	});
-};
+		}).then(() => { });
 
-export const insertEditionDownloadInDb = async (edition, projectDomain) => {
-	edition.downloaded = true;
+		return { ...edition, downloaded: status === 'downloaded', status: status };
+	}
 
-	SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
-		DB.transaction((tx) => {
-			db = DB;
-			tx.executeSql('INSERT OR REPLACE INTO Editions (projectDomain, custom_image_src, description, href, path, published, screenshot_src, tags, title, favorite, downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				[projectDomain, edition.custom_image_src, edition.description, edition.href, edition.path, edition.published, edition.screenshot_src, toString(edition.tags), edition.title, edition.favorite, edition.downloaded]
-			);
-		}).then(() => {
-			closeDatabase();
-		});
-	});
-};
+	async insertProjectsInDb(projects) {
+		await this.openDatabase();
 
-export const removeEditionDownloadFromDb = async (edition, projectDomain) => {
-	edition.downloaded = false;
-
-	SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
-		DB.transaction((tx) => {
-			db = DB;
-			tx.executeSql('INSERT OR REPLACE INTO Editions (projectDomain, custom_image_src, description, href, path, published, screenshot_src, tags, title, favorite, downloaded) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-				[projectDomain, edition.custom_image_src, edition.description, edition.href, edition.path, edition.published, edition.screenshot_src, toString(edition.tags), edition.title, edition.favorite, edition.downloaded]
-			);
-		}).then(() => {
-			closeDatabase();
-		});
-	});
-};
-
-export const insertProjectsInDb = async (projects) => {
-	SQLite.openDatabase({ name: DB_NAME, location: DB_LOCATION }, successCB, errorCB).then((DB) => {
-		DB.transaction((tx) => {
-			db = DB;
+		db.transaction((tx) => {
 			projects.forEach(project => {
 				tx.executeSql('INSERT OR REPLACE INTO Projects (domain, name, latest_edition, favorite) VALUES (?, ?, ?, ?)',
 					[project.domain, project.name, JSON.stringify(project.latest_edition), !project.favorite]
 				);
 			});
-		}).then(() => {
-			closeDatabase();
-		});
-	});
-};
+		}).then(() => { });
+	}
+}
+
+let Db = (() => {
+	let api = new DbQuery();
+	return api;
+})();
+
+export default Db;

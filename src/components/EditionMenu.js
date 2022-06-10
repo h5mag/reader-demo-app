@@ -3,11 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { MenuView } from '@react-native-menu/menu';
 import styles from '../css/style';
 import sv from '../css/variables';
-import RNFS from 'react-native-fs';
 import { MainBundlePath, DocumentDirectoryPath } from 'react-native-fs';
 import { Platform } from 'react-native';
-import { insertEditionDownloadInDb, removeEditionDownloadFromDb, insertEditionFavoriteInDb, removeEditionFavoriteFromDb } from '../util/Queries';
+import DbQuery from '../util/Queries';
 import H5mag from '@h5mag/react-native-h5mag';
+import { useQuery } from 'react-query';
 
 export default function EditionMenu(props) {
 	const { navigation, route, edition, projectDomain, onChangeFavorite, onChangeDownloaded, inNavigation } = props;
@@ -15,38 +15,42 @@ export default function EditionMenu(props) {
 	const targetPath = (Platform.OS === 'android' ? DocumentDirectoryPath : MainBundlePath) + '/' + projectDomain + edition.path;
 	const charset = 'UTF-8';
 
-	const [downloading, setDownloading] = useState(false);
-	const [downloadProgress, setDownloadProgress] = useState(0);
+	const { data: editionStatus } = useQuery(['editions.status', edition.href], () => { });
+	const { data: editionFavorite } = useQuery(['editions.favorite', edition.href], () => { });
 
-	useEffect(() => {
-		RNFS.exists(targetPath).then((exists) => {
-			if (exists) { setDownloadProgress(100); }
-		});
-	}, []);
+	// const [downloadProgress, setDownloadProgress] = useState(0);
 
 	/**
 	 * Downloads the selected edition and inserts relevant data into the database.
 	 * @returns stops if already downloading.
 	 */
 	const startEditionDownload = () => {
-		if (downloading) { return; }
+		if (editionStatus === 'downloading') { return; }
 
-		setDownloading(true);
+		DbQuery.insertEditionDownloadInDb(edition, projectDomain, 'downloading').then((result) => {
+			onChangeDownloaded(result);
+		});
 
 		H5mag.downloadEdition(targetPath, charset, edition.path, projectDomain).then((result) => {
 			if (result === 'downloaded') {
-				insertEditionDownloadInDb(edition, projectDomain).then(() => {
-					onChangeDownloaded(edition);
+				DbQuery.findOneEditionInDb(edition).then((editionFromDb) => {
+					DbQuery.insertEditionDownloadInDb(editionFromDb, projectDomain, 'downloaded').then((res) => {
+						onChangeDownloaded(res);
+						// setDownloadProgress(100);
+					});
 				});
-
-				setDownloading(false);
-				setDownloadProgress(100);
 			}
 		}).catch((err) => {
 			console.log(err);
 
-			setDownloading(false);
-			setDownloadProgress(100);
+			DbQuery.findOneEditionInDb(edition).then((editionFromDb) => {
+				if (editionFromDb) {
+					DbQuery.insertEditionDownloadInDb(editionFromDb, projectDomain, 'failed').then((res) => {
+						onChangeDownloaded(res);
+						// setDownloadProgress(100);
+					});
+				}
+			});
 		});
 	};
 
@@ -56,10 +60,10 @@ export default function EditionMenu(props) {
 	const startEditionDelete = () => {
 		H5mag.deleteEdition(targetPath).then((result) => {
 			if (result === 'deleted') {
-				removeEditionDownloadFromDb(edition, projectDomain).then(() => {
-					onChangeDownloaded(edition);
+				DbQuery.insertEditionDownloadInDb(edition, projectDomain, 'deleted').then((res) => {
+					onChangeDownloaded(res);
+					// setDownloadProgress(0);
 				});
-				setDownloadProgress(0);
 			}
 		});
 	};
@@ -79,13 +83,13 @@ export default function EditionMenu(props) {
 	 * (un)favorites the selected edition.
 	 */
 	const favoriteEdition = () => {
-		if (edition.favorite) {
-			removeEditionFavoriteFromDb(edition, projectDomain).then(() => {
-				onChangeFavorite(edition);
+		if (editionFavorite || edition.favorite) {
+			DbQuery.insertEditionFavoriteInDb(edition, projectDomain, false).then((res) => {
+				onChangeFavorite(res);
 			});
 		} else {
-			insertEditionFavoriteInDb(edition, projectDomain).then(() => {
-				onChangeFavorite(edition);
+			DbQuery.insertEditionFavoriteInDb(edition, projectDomain, true).then((res) => {
+				onChangeFavorite(res);
 			});
 		}
 	};
@@ -93,7 +97,7 @@ export default function EditionMenu(props) {
 	const menuActions = () => {
 		let actions = [];
 
-		if (edition.downloaded) {
+		if (editionStatus === 'downloaded' || edition.downloaded) {
 			actions.push({
 				id: 'delete',
 				title: 'Remove download',
@@ -119,7 +123,7 @@ export default function EditionMenu(props) {
 			if (Platform.OS === 'ios') {
 				actions.push({
 					id: 'download',
-					title: downloading ? 'Downloading...' : 'Download',
+					title: (edition.status === 'failed' && 'Retry download' || (editionStatus === 'downloading' ? 'Downloading...' : 'Download')),
 					titleColor: sv.black,
 					subtitle: 'Download',
 					image: Platform.select({
@@ -128,13 +132,13 @@ export default function EditionMenu(props) {
 					}),
 					imageColor: sv.primaryColor,
 					attributes: {
-						disabled: downloading,
+						disabled: editionStatus === 'downloading',
 					},
 				});
 			} else {
 				actions.push({
 					id: 'download',
-					title: downloading ? 'Downloading...' : 'Download',
+					title: (edition.status === 'failed' && 'Retry download' || (editionStatus === 'downloading' ? 'Downloading...' : 'Download')),
 					titleColor: sv.black,
 					subtitle: 'Download',
 					image: Platform.select({
@@ -148,11 +152,11 @@ export default function EditionMenu(props) {
 
 		actions.push({
 			id: 'favorite',
-			title: edition.favorite ? 'Unfavorite' : 'Favorite',
+			title: (editionFavorite || edition.favorite) ? 'Unfavorite' : 'Favorite',
 			titleColor: sv.black,
 			subtitle: 'Save to favorites',
 			image: Platform.select({
-				ios: edition.favorite ? 'heart.fill' : 'heart',
+				ios: (editionFavorite || edition.favorite) ? 'heart.fill' : 'heart',
 				android: 'heart', //TODO: does not work yet
 			}),
 			imageColor: sv.primaryColor,

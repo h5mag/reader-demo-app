@@ -15,6 +15,7 @@ import Home from './src/screens/Home';
 import styles from './src/css/style';
 import sv from './src/css/variables';
 import { API_KEY } from './localConfig';
+import { useQuery, useMutation, useQueryClient, QueryClient, QueryClientProvider } from 'react-query';
 
 // TODO: Fix these errors.
 import { LogBox } from 'react-native';
@@ -27,6 +28,14 @@ LogBox.ignoreLogs([
 H5mag.setApiKey(API_KEY);
 
 export default function App() {
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				staleTime: Infinity,
+			},
+		},
+	});
+
 	const Tab = createBottomTabNavigator();
 	const HomeStack = createNativeStackNavigator();
 	const DownloadsStack = createNativeStackNavigator();
@@ -162,9 +171,11 @@ export default function App() {
 
 	return (
 		<GestureHandlerRootView style={styles.flex1}>
-			<NavigationContainer>
-				{MyTabs()}
-			</NavigationContainer>
+			<QueryClientProvider client={queryClient}>
+				<NavigationContainer>
+					{MyTabs()}
+				</NavigationContainer>
+			</QueryClientProvider>
 		</GestureHandlerRootView>
 	);
 }

@@ -27,11 +27,11 @@ export default function Database() {
     const populateDatabase = (DB) => {
         DB.transaction(populateDB).then(() => {
             console.log('Database populated ... executing query ...');
-            DB.transaction(queryProjects).then((result) => {
-                console.log('Transaction is now finished');
-                console.log('Processing completed');
-                closeDatabase();
-            });
+            closeDatabase();
+            // DB.transaction(queryProjects).then((result) => {
+            //     console.log('Transaction is now finished');
+            //     console.log('Processing completed');
+            // });
         }).catch((error) => {
             console.log('Received error: ', error);
         });
@@ -63,22 +63,13 @@ export default function Database() {
             + 'tags TEXT, '
             + 'title TEXT, '
             + 'favorite BOOLEAN, '
-            + 'downloaded BOOLEAN ) ; ').catch((error) => {
+            + 'downloaded BOOLEAN, '
+            + 'status TEXT ) ; ').catch((error) => {
                 errorCB(error);
             });
-    };
 
-    const queryProjects = (tx) => {
-        console.log('Executing projects query');
-        tx.executeSql('SELECT p.name FROM Projects p', []).then(([tx, results]) => {
-            console.log('Query results:');
-            var len = results.rows.length;
-            for (let i = 0; i < len; i++) {
-                let row = results.rows.item(i);
-                console.log(`Project title: ${row.name}`);
-            }
-        }).catch((error) => {
-            console.log(error);
+        tx.executeSql('UPDATE Editions SET status = "failed" WHERE status = "downloading"', []).catch((error) => {
+            errorCB(error);
         });
     };
 

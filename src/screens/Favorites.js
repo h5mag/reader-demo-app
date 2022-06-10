@@ -1,25 +1,26 @@
 import Icon from 'react-native-vector-icons/Ionicons'; Icon.loadFont();
 import React, { useEffect, useState, useCallback } from 'react';
-import { StatusBar, View, Text, Pressable, ActivityIndicator, Image } from 'react-native';
+import { StatusBar, View, Text, ActivityIndicator } from 'react-native';
 import styles from '../css/style';
 import { FlatList } from 'react-native-gesture-handler';
-import { findAllFavoriteEditionsInDb } from '../util/Queries';
+import DbQuery from '../util/Queries';
 import { useFocusEffect } from '@react-navigation/native';
 import { useNetInfo } from '@react-native-community/netinfo';
-import EditionMenu from '../components/EditionMenu';
+import Edition from '../components/Edition';
 import sv from '../css/variables';
-import { goToEdition } from '../util/Editions';
+import { useQueryClient } from 'react-query';
 
 export default function Favorites({ navigation, route }) {
 	const netInfo = useNetInfo();
+	const queryClient = useQueryClient();
 
 	const [isLoading, setLoading] = useState(true);
-	const [data, setData] = useState([]);
+	const [editions, setEditions] = useState([]);
 
 	useFocusEffect(
 		useCallback(() => {
 			getFavoriteEditions();
-		}, [netInfo])
+		}, [netInfo?.isConnected])
 	);
 
 	useEffect(() => {
@@ -32,8 +33,8 @@ export default function Favorites({ navigation, route }) {
 	const getFavoriteEditions = async () => {
 		if (netInfo.isConnected?.toString() === 'true') {
 			try {
-				findAllFavoriteEditionsInDb().then((result) => {
-					setData(result);
+				DbQuery.findAllFavoriteEditionsInDb().then((result) => {
+					setEditions(result);
 				});
 			} catch (error) {
 				console.error(error);
@@ -44,43 +45,17 @@ export default function Favorites({ navigation, route }) {
 	};
 
 	/**
-	 * Update edition favorite state.
+	 * Update global edition favorite and downloaded state.
 	 * @param {edition} edition
 	 */
-	const onChangeFavorite = (edition) => {
-		const index = data.findIndex(e => edition.href === e.href);
-		let tempData = [...data];
-		tempData.splice(index, 1);
-		setData(tempData);
-	};
-
-	/**
-	 * Update edition downloaded state.
-	 * @param {edition} edition
-	 */
-	const onChangeDownloaded = (edition) => {
-		const index = data.findIndex(e => edition.href === e.href);
-		let tempData = [...data];
-		tempData[index] = edition;
-		setData(tempData);
+	const onChangeEdition = (edition) => {
+		queryClient.setQueryData(['editions.status', edition.href], () => { return edition.status; });
+		queryClient.setQueryData(['editions.favorite', edition.href], () => { return edition.favorite; });
+		getFavoriteEditions();
 	};
 
 	const renderItem = ({ item }) => (
-		<View style={styles.editionBlock}>
-			<Pressable onPress={() => goToEdition(item, item.projectDomain, navigation)} style={[styles.flexRowContainer, styles.spaceBetween, styles.alignCenter]}>
-				<Image source={{ uri: item.screenshot_src }} style={styles.editionPhotoSmall} />
-				{item.downloaded ? <Icon name={'cloud-done-outline'} size={sv.m2} color={sv.primaryColor} iconStyle={styles.mr0} /> : <View></View>}
-				<View style={styles.editionBlockDescription}>
-					<Text style={styles.editionTitle}>
-						{item.title}
-					</Text>
-					{item.description?.length > 0 &&
-						<Text>{item.description}</Text>
-					}
-				</View>
-				<EditionMenu edition={item} projectDomain={item.projectDomain} navigation={navigation} route={route} onChangeFavorite={onChangeFavorite} onChangeDownloaded={onChangeDownloaded} />
-			</Pressable>
-		</View>
+		<Edition item={item} projectDomain={item.projectDomain} navigation={navigation} route={route} onChangeDownloaded={onChangeEdition} onChangeFavorite={onChangeEdition}/>
 	);
 
 	if (netInfo.isConnected?.toString() !== 'true') {
@@ -97,8 +72,8 @@ export default function Favorites({ navigation, route }) {
 							Favorites
 						</Text>
 					}
-					ListFooterComponent={!isLoading && data.length <= 0 && <Text style={[styles.mt2, styles.ml2]}>Hey, no favorite editions were found...</Text>}
-					data={data}
+					ListEmptyComponent={<Text style={[styles.black, styles.ml2]}>No favorites were found...</Text>}
+					data={editions}
 					renderItem={renderItem}
 					keyExtractor={item => item.title}
 				/>

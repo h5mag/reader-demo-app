@@ -2,16 +2,20 @@ import Icon from 'react-native-vector-icons/Ionicons'; Icon.loadFont();
 import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar, View, Text, Pressable, ActivityIndicator, Image } from 'react-native';
 import EditionMenu from '../components/EditionMenu';
+import EditionIcon from '../components/EditionIcon';
 import { FlatList } from 'react-native-gesture-handler';
-import { findAllDownloadedEditionsInDb } from '../util/Queries';
+import DbQuery from '../util/Queries';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../css/style';
 import sv from '../css/variables';
 import { goToEdition } from '../util/Editions';
+import { useQueryClient } from 'react-query';
 
 export default function Downloads({ navigation, route }) {
+	const queryClient = useQueryClient();
+
 	const [isLoading, setLoading] = useState(true);
-	const [data, setData] = useState([]);
+	const [editions, setEditions] = useState([]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -19,13 +23,17 @@ export default function Downloads({ navigation, route }) {
 		}, [])
 	);
 
+	useEffect(() => {
+		getDownloadedEditions();
+	}, []);
+
 	/**
 	 * Retrieves editions from database where download = 1.
 	 */
 	const getDownloadedEditions = async () => {
 		try {
-			findAllDownloadedEditionsInDb().then((result) => {
-				setData(result);
+			DbQuery.findAllDownloadedEditionsInDb().then((result) => {
+				setEditions(result);
 			});
 		} catch (error) {
 			console.error(error);
@@ -34,46 +42,34 @@ export default function Downloads({ navigation, route }) {
 		}
 	};
 
-	useEffect(() => {
-		getDownloadedEditions();
-	}, []);
-
-	/**
-	 * Update edition favorite state.
-	 * @param {edition} edition
-	 */
-	const onChangeFavorite = (edition) => {
-		const index = data.findIndex(e => edition.href === e.href);
-		let tempData = [...data];
-		tempData[index] = edition;
-		setData(tempData);
-	};
-
 	/**
 	 * Update edition downloaded state.
 	 * @param {edition} edition
 	 */
 	const onChangeDownloaded = (edition) => {
-		const index = data.findIndex(e => edition.href === e.href);
-		let tempData = [...data];
-		tempData.splice(index, 1);
-		setData(tempData);
+		queryClient.setQueryData(['editions.status', edition.href], () => { return edition.status; });
+		queryClient.setQueryData(['editions.favorite', edition.href], () => { return edition.favorite; });
+
+		getDownloadedEditions();
 	};
 
 	const renderItem = ({ item }) => (
 		<View style={styles.editionBlock}>
 			<Pressable onPress={() => goToEdition(item, item.projectDomain, navigation)} style={[styles.flexRowContainer, styles.spaceBetween, styles.alignCenter]}>
 				<Image source={{ uri: item.screenshot_src }} style={styles.editionPhotoSmall} />
-				{item.downloaded ? <Icon name={'cloud-done-outline'} size={sv.m2} color={sv.primaryColor} iconStyle={styles.mr0} /> : <View></View>}
+
+				<EditionIcon item={item} />
+
 				<View style={styles.editionBlockDescription}>
 					<Text style={styles.editionTitle}>
 						{item.title}
 					</Text>
-					{item.description?.length > 0 &&
-						<Text>{item.description}</Text>
-					}
+					<Pressable onPress={() => navigation.navigate('Editions', { projectDomain: item.projectDomain })}>
+						<Text>In {item.projectDomain} <Icon name={'chevron-forward'} size={12} color={sv.primaryColor} /></Text>
+					</Pressable>
 				</View>
-				<EditionMenu edition={item} projectDomain={item.projectDomain} navigation={navigation} route={route} onChangeFavorite={onChangeFavorite} onChangeDownloaded={onChangeDownloaded} />
+
+				<EditionMenu edition={item} projectDomain={item.projectDomain} navigation={navigation} route={route} onChangeFavorite={onChangeDownloaded} onChangeDownloaded={onChangeDownloaded} />
 			</Pressable>
 		</View>
 	);
@@ -88,8 +84,8 @@ export default function Downloads({ navigation, route }) {
 							Downloads
 						</Text>
 					}
-					ListFooterComponent={!isLoading && data.length <= 0 && <Text style={[styles.mt2, styles.ml2]}>Hey, no downloads were found...</Text>}
-					data={data}
+					ListEmptyComponent={<Text style={[styles.black, styles.ml2]}>No downloads were found...</Text>}
+					data={editions}
 					renderItem={renderItem}
 					keyExtractor={item => item.href}
 				/>

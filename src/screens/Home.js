@@ -8,7 +8,7 @@ import { FlatList, TextInput } from 'react-native-gesture-handler';
 import { useNetInfo } from '@react-native-community/netinfo';
 import capitalize from '../util/Words';
 import H5mag from '@h5mag/react-native-h5mag';
-import { insertProjectsInDb, findAllProjectsInDb } from '../util/Queries';
+import DbQuery from '../util/Queries';
 
 export default function Home({ navigation }) {
 	const netInfo = useNetInfo();
@@ -26,7 +26,7 @@ export default function Home({ navigation }) {
 			getProjectsDataFromAPI();
 		}
 		if (netInfo.isConnected?.toString() === 'false') {
-			findAllProjectsInDb().then((result) => {
+			DbQuery.findAllProjectsInDb().then((result) => {
 				if (!result) { return; }
 				setProjects(result);
 				setFilteredProjects(result);
@@ -41,7 +41,7 @@ export default function Home({ navigation }) {
 	const getProjectsDataFromAPI = async () => {
 		try {
 			await H5mag.getProjectsList({ filterByHasLatestEdition: true }).then(result => {
-				insertProjectsInDb(result);
+				DbQuery.insertProjectsInDb(result);
 				setProjects(result);
 				setFilteredProjects(result);
 			});
@@ -110,6 +110,7 @@ export default function Home({ navigation }) {
 										onChangeText={text => filterProjects(text)}
 										clearButtonMode="always"
 										placeholder="Search"
+										placeholderTextColor={sv.gray}
 									/>
 								</>
 							}
@@ -120,6 +121,7 @@ export default function Home({ navigation }) {
 									}
 								</>
 							}
+							ListEmptyComponent={<Text style={[styles.black, styles.ml1]}>No projects were found...</Text>}
 							data={filteredProjects}
 							renderItem={renderItem}
 							numColumns={2}

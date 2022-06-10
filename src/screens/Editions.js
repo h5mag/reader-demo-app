@@ -1,29 +1,30 @@
 import Icon from 'react-native-vector-icons/Ionicons'; Icon.loadFont();
 import React, { useState, useCallback, useLayoutEffect } from 'react';
-import { StatusBar, View, Text, Pressable, ActivityIndicator, Image } from 'react-native';
+import { StatusBar, View, Text, ActivityIndicator, Image } from 'react-native';
 import styles from '../css/style';
 import { FlatList } from 'react-native-gesture-handler';
 import sv from '../css/variables';
 import capitalize from '../util/Words';
-import EditionMenu from '../components/EditionMenu';
+import Edition from '../components/Edition';
 import { useNetInfo } from '@react-native-community/netinfo';
-import { findAllEditionsInDb } from '../util/Queries';
+import DbQuery from '../util/Queries';
 import { useFocusEffect } from '@react-navigation/native';
 import H5mag from '@h5mag/react-native-h5mag';
-import { goToEdition } from '../util/Editions';
+import { useQueryClient } from 'react-query';
 
 export default function Editions({ navigation, route }) {
 	const { projectDomain, projectThumbnail } = route.params;
 
 	const netInfo = useNetInfo();
+	const queryClient = useQueryClient();
 
 	const [isLoading, setLoading] = useState(true);
-	const [data, setData] = useState();
+	const [projectWithEditions, setProjectWithEditions] = useState();
 
 	useFocusEffect(
 		useCallback(() => {
 			getAndSyncProjectDataWithDb();
-		}, [netInfo.isConnected])
+		}, [netInfo?.isConnected])
 	);
 
 	useLayoutEffect(() => {
@@ -43,21 +44,21 @@ export default function Editions({ navigation, route }) {
 				return;
 			}
 
-			let editions = await findAllEditionsInDb().then((result) => {
+			let editionsFromDb = await DbQuery.findAllEditionsInDb().then((result) => {
 				return result;
 			});
 
 			let tempData = [...json.editions];
 
 			for (let i = 0; i < tempData.length; i++) {
-				for (let j = 0; j < editions.length; j++) {
-					if (tempData[i].href.includes(editions[j].href)) {
-						tempData[i] = editions[j];
+				for (let j = 0; j < editionsFromDb.length; j++) {
+					if (tempData[i].href.includes(editionsFromDb[j].href)) {
+						tempData[i] = editionsFromDb[j];
 					}
 				}
 			}
 
-			setData({ ...json, editions: tempData });
+			setProjectWithEditions({ ...json, editions: tempData });
 			setLoading(false);
 		}
 	};
@@ -80,29 +81,17 @@ export default function Editions({ navigation, route }) {
 	 * @param {edition} edition
 	 */
 	const onChangeEdition = (edition) => {
-		const index = data.editions.findIndex(e => edition.href === e.href);
-		let tempData = [...data.editions];
+		let tempData = [...projectWithEditions.editions];
+		const index = tempData.findIndex(e => edition.href === e.href);
 		tempData[index] = edition;
-		setData({ ...data, editions: tempData });
+		setProjectWithEditions({ ...projectWithEditions, editions: tempData });
+
+		queryClient.setQueryData(['editions.favorite', tempData[index].href], () => { return tempData[index].favorite; });
+		queryClient.setQueryData(['editions.status', tempData[index].href], () => { return tempData[index].status; });
 	};
 
 	const renderItem = ({ item }) => (
-		<View style={styles.editionBlock}>
-			<Pressable onPress={() => goToEdition(item, projectDomain, navigation)} style={[styles.flexRowContainer, styles.spaceBetween, styles.alignCenter]}>
-				<Image source={{ uri: item.screenshot_src }} style={styles.editionPhotoSmall} />
-				{item.downloaded ? <Icon name={'cloud-done-outline'} size={sv.m2} color={sv.primaryColor} iconStyle={styles.mr0} /> : <View></View>}
-				<View style={styles.editionBlockDescription}>
-					<Text style={styles.editionTitle}>
-						{item.title}
-					</Text>
-					{item.description?.length > 0 &&
-						<Text>{item.description}</Text>
-					}
-				</View>
-
-				<EditionMenu edition={item} projectDomain={projectDomain} navigation={navigation} route={route} onChangeFavorite={onChangeEdition} onChangeDownloaded={onChangeEdition} />
-			</Pressable>
-		</View>
+		<Edition item={item} projectDomain={projectDomain} navigation={navigation} route={route} onChangeEdition={onChangeEdition} onChangeDownloaded={onChangeEdition} onChangeFavorite={onChangeEdition} />
 	);
 
 	if (netInfo.isConnected?.toString() !== 'true') {
@@ -118,13 +107,14 @@ export default function Editions({ navigation, route }) {
 						<View style={{}}>
 							{projectThumbnail && <Image source={{ uri: projectThumbnail }} style={styles.editionPhoto} />}
 							<View style={{ marginHorizontal: sv.m3, marginBottom: sv.m2 }}>
-								<Text style={[styles.header, !projectThumbnail && styles.mt3]}>{capitalize(data.title)}</Text>
+								<Text style={[styles.header, !projectThumbnail && styles.mt3]}>{capitalize(projectWithEditions.title)}</Text>
 								<Text style={styles.subheader}>Project description here</Text>
 							</View>
 						</View>
 					}
-					ListFooterComponent={!isLoading && data.editions.length <= 0 && <Text>Sorry! We did not find any editions...</Text>}
-					data={data.editions}
+					ListEmptyComponent={<Text style={[styles.black, { marginHorizontal: sv.m3 }]}>Sorry! We did not find any editions...</Text>}
+					data={projectWithEditions.editions}
+					extraData={projectWithEditions}
 					renderItem={renderItem}
 					keyExtractor={item => item.title} />
 			)}

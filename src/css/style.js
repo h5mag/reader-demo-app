@@ -78,6 +78,10 @@ export default StyleSheet.create({
 		marginLeft: sv.m5,
 	},
 
+	black: {
+		color: sv.black,
+	},
+
 	flex1: {
 		flex: 1,
 	},
@@ -130,6 +134,7 @@ export default StyleSheet.create({
 		borderColor: sv.lightGray,
 		padding: sv.m1,
 		borderRadius: sv.m2,
+		color: sv.gray,
 	},
 
 	image: {
@@ -187,6 +192,7 @@ export default StyleSheet.create({
 
 	subheader: {
 		marginBottom: sv.m2,
+		color: sv.black,
 	},
 
 	editionDescription: {
