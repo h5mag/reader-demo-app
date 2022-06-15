@@ -78,7 +78,7 @@ export const API_KEY = 'h5_public_abcdef';
 
 ## **Using react-native-h5mag**
 
-If you would like to see the full API and/or create your own app without the demo application, go [here](https://gitlab.local.schuttelaar.net/h5mag/app-framework-npm)
+If you would like to see the full API and/or create your own app without the demo application, go [here](https://github.com/h5mag/react-native-h5mag)
 
 ## **Troubleshooting**
 ##### Could not find tools.jar
