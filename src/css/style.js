@@ -1,7 +1,11 @@
-import { StyleSheet } from 'react-native';
+import StyleSheet from 'react-native-media-query';
 import sv from './variables';
 
-export default StyleSheet.create({
+const { ids, styles } = StyleSheet.create({
+	/**
+	 * General
+	 */
+
 	mb0: {
 		marginBottom: sv.m0,
 	},
@@ -78,6 +82,10 @@ export default StyleSheet.create({
 		marginLeft: sv.m5,
 	},
 
+	white: {
+		color: sv.white,
+	},
+
 	black: {
 		color: sv.black,
 	},
@@ -116,6 +124,27 @@ export default StyleSheet.create({
 		backgroundColor: 'black',
 	},
 
+	image: {
+		flex: 1,
+		overflow: 'hidden',
+		justifyContent: 'center',
+		borderRadius: sv.m1,
+	},
+
+	header: {
+		fontWeight: 'bold',
+		fontSize: sv.m4,
+		marginBottom: sv.m1,
+
+		'@media (min-width: 425px) and (min-height: 400px)': {
+			textAlign: 'center',
+		},
+	},
+
+	/**
+	 * Containers
+	 */
+
 	center: {
 		justifyContent: 'center',
 		alignItems: 'center',
@@ -124,30 +153,6 @@ export default StyleSheet.create({
 
 	mainContainer: {
 		flex: 1,
-		paddingHorizontal: sv.m2,
-	},
-
-	searchInput: {
-		height: sv.m4,
-		marginBottom: sv.m4,
-		borderWidth: 1,
-		borderColor: sv.lightGray,
-		padding: sv.m1,
-		borderRadius: sv.m2,
-		color: sv.gray,
-	},
-
-	image: {
-		flex: 1,
-		overflow: 'hidden',
-		justifyContent: 'center',
-		borderRadius: sv.m1,
-	},
-
-	projectImage: {
-		height: 100,
-		margin: sv.m1,
-		orderRadius: sv.m1,
 	},
 
 	centerContainer: {
@@ -168,11 +173,50 @@ export default StyleSheet.create({
 		width: '100%',
 	},
 
-	header: {
-		fontWeight: 'bold',
-		fontSize: sv.m4,
-		marginBottom: sv.m1,
-		color: sv.black,
+
+	/**
+	 * Inputs
+	 */
+
+	searchInput: {
+		height: sv.m4,
+		marginBottom: sv.m4,
+		borderWidth: 1,
+		borderColor: sv.lightGray,
+		padding: sv.m1,
+		borderRadius: sv.m2,
+	},
+
+
+	/**
+	 * Buttons
+	 */
+
+	projectButton: {
+		display: 'flex',
+		flexDirection: 'row',
+		width: '100%',
+		height: '100%',
+		alignItems: 'flex-end',
+		justifyContent: 'center',
+		marginBottom: sv.m3,
+	},
+
+	iconButton: {
+		padding: sv.m1,
+		display: 'flex',
+		justifyContent: 'center',
+	},
+
+
+	/**
+	 * Projects
+	 */
+
+	projectImage: {
+		height: 100,
+		margin: sv.m1,
+		orderRadius: sv.m1,
 	},
 
 	projectTitle: {
@@ -183,51 +227,52 @@ export default StyleSheet.create({
 		padding: 4,
 	},
 
-	editionTitle: {
-		fontWeight: 'bold',
-		fontSize: sv.m2,
-		color: sv.black,
-		marginBottom: sv.m1,
-	},
-
-	subheader: {
-		marginBottom: sv.m2,
-		color: sv.black,
-	},
-
-	editionDescription: {
-		marginBottom: sv.m3,
-	},
-
-	button: {
-		marginBottom: sv.m3,
-		padding: sv.m1,
-		display: 'flex',
-		alignItems: 'center',
-		backgroundColor: sv.primaryColor,
-		borderRadius: sv.m4,
-	},
-
-	iconButton: {
-		padding: sv.m1,
-		display: 'flex',
-		justifyContent: 'center',
-	},
-
 	projectBlock: {
 		padding: sv.m1,
 	},
 
+	// Sub-header on Editions page
+	projectSubheader: {
+		marginBottom: sv.m2,
+
+		'@media (min-width: 425px) and (min-height: 400px)': {
+			textAlign: 'center',
+		},
+	},
+
+
+	/**
+	 * Editions
+	 */
+
 	editionContainer: {
 		display: 'flex',
 		height: '100%',
-		backgroundColor: '#fafafa',
+	},
+
+	lightBackground: {
+		backgroundColor: sv.veryLightGray,
+	},
+
+	darkBackground: {
+		backgroundColor: sv.darkGray,
+	},
+
+	editionTitle: {
+		fontWeight: 'bold',
+		fontSize: sv.m2,
+		marginBottom: sv.m1,
 	},
 
 	editionBlock: {
 		marginVertical: sv.m2,
-		marginHorizontal: sv.m3,
+		paddingHorizontal: sv.m3,
 		display: 'flex',
+		width: '100%',
+
+		'@media (min-width: 425px) and (min-height: 400px)': {
+			width: 400,
+		},
 	},
 
 	editionBlockDescription: {
@@ -246,13 +291,9 @@ export default StyleSheet.create({
 		borderRadius: sv.m1,
 	},
 
-	projectButton: {
-		display: 'flex',
-		flexDirection: 'row',
-		width: '100%',
-		height: '100%',
-		alignItems: 'flex-end',
-		justifyContent: 'center',
+	editionDescription: {
 		marginBottom: sv.m3,
 	},
 });
+
+export default styles;

@@ -1,5 +1,5 @@
 import Icon from 'react-native-vector-icons/Ionicons'; Icon.loadFont();
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { MenuView } from '@react-native-menu/menu';
 import styles from '../css/style';
 import sv from '../css/variables';
@@ -15,6 +15,7 @@ export default function EditionMenu(props) {
 	const targetPath = (Platform.OS === 'android' ? DocumentDirectoryPath : MainBundlePath) + '/' + projectDomain + edition.path;
 	const charset = 'UTF-8';
 
+	const { data: themeTextColorInline } = useQuery('colorScheme.textColorInline');
 	const { data: editionStatus } = useQuery(['editions.status', edition.href], () => { });
 	const { data: editionFavorite } = useQuery(['editions.favorite', edition.href], () => { });
 
@@ -124,7 +125,7 @@ export default function EditionMenu(props) {
 				actions.push({
 					id: 'download',
 					title: (edition.status === 'failed' && 'Retry download' || (editionStatus === 'downloading' ? 'Downloading...' : 'Download')),
-					titleColor: sv.black,
+					titleColor: themeTextColorInline,
 					subtitle: 'Download',
 					image: Platform.select({
 						ios: 'arrow.down',
@@ -139,7 +140,7 @@ export default function EditionMenu(props) {
 				actions.push({
 					id: 'download',
 					title: (edition.status === 'failed' && 'Retry download' || (editionStatus === 'downloading' ? 'Downloading...' : 'Download')),
-					titleColor: sv.black,
+					titleColor: themeTextColorInline,
 					subtitle: 'Download',
 					image: Platform.select({
 						ios: 'arrow.down',
@@ -153,7 +154,7 @@ export default function EditionMenu(props) {
 		actions.push({
 			id: 'favorite',
 			title: (editionFavorite || edition.favorite) ? 'Unfavorite' : 'Favorite',
-			titleColor: sv.black,
+			titleColor: themeTextColorInline,
 			subtitle: 'Save to favorites',
 			image: Platform.select({
 				ios: (editionFavorite || edition.favorite) ? 'heart.fill' : 'heart',

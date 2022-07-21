@@ -9,9 +9,15 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import capitalize from '../util/Words';
 import H5mag from '@h5mag/react-native-h5mag';
 import DbQuery from '../util/Queries';
+import { Dimensions } from 'react-native';
+import { useQuery } from 'react-query';
 
 export default function Home({ navigation }) {
 	const netInfo = useNetInfo();
+	const { data: isDark } = useQuery('colorScheme');
+	const { data: themeTextColor } = useQuery('colorScheme.textColor');
+
+	const windowWidth = Dimensions.get('window').width;
 
 	const [isLoading, setLoading] = useState(true);
 	const [projects, setProjects] = useState(null);
@@ -70,7 +76,7 @@ export default function Home({ navigation }) {
 		navigation.navigate('Editions', { projectDomain: p.domain, projectThumbnail: p.latest_edition.screenshot_src });
 	};
 
-	if (!projects && !isLoading) { return <Text>No titles found.</Text>; }
+	if (!projects && !isLoading) { return <Text style={themeTextColor}>No titles found.</Text>; }
 
 	const renderItem = ({ item }) => (
 		<ImageBackground source={{ uri: item.latest_edition.screenshot_src }} style={[styles.image, styles.projectImage]}>
@@ -79,7 +85,7 @@ export default function Home({ navigation }) {
 				locations={[0.1, 1]}
 				style={styles.fullContainer}>
 				<Pressable onPress={() => goToEdition(item)} style={styles.projectButton}>
-					<Text style={styles.projectTitle}>
+					<Text style={[styles.projectTitle]}>
 						{capitalize(item.name)}
 					</Text>
 				</Pressable>
@@ -88,9 +94,9 @@ export default function Home({ navigation }) {
 	);
 
 	return (
-		<View style={styles.image}>
+		<View>
 			<LinearGradient
-				colors={[sv.primaryColor + '20', '#ffffffff']}
+				colors={[sv.primaryColor + (isDark ? 'bb' : '20'), isDark ? '#000000ff' : '#ffffffff']}
 				locations={[0.1, 1]}
 				style={styles.fullContainer}>
 
@@ -102,7 +108,7 @@ export default function Home({ navigation }) {
 						: <FlatList
 							ListHeaderComponent={
 								<>
-									<Text style={[styles.header, styles.mb2, styles.mt3]}>
+									<Text style={[themeTextColor, styles.header, styles.mb2, styles.mt3]}>
 										Library
 									</Text>
 									<TextInput
@@ -110,21 +116,22 @@ export default function Home({ navigation }) {
 										onChangeText={text => filterProjects(text)}
 										clearButtonMode="always"
 										placeholder="Search"
-										placeholderTextColor={sv.gray}
+										placeholderTextColor={isDark ? sv.white : sv.gray}
 									/>
 								</>
 							}
 							ListFooterComponent={
 								<>
 									{netInfo.isConnected?.toString() !== 'true' &&
-										<Text style={{ color: sv.black, margin: sv.m2 }}>No internet connection</Text>
+										<Text style={[themeTextColor, { margin: sv.m2 }]}>No internet connection</Text>
 									}
 								</>
 							}
-							ListEmptyComponent={<Text style={[styles.black, styles.ml1]}>No projects were found...</Text>}
+							ListEmptyComponent={<Text style={[themeTextColor, styles.ml1]}>No projects were found...</Text>}
 							data={filteredProjects}
 							renderItem={renderItem}
-							numColumns={2}
+							style={{ paddingHorizontal: sv.m2 }}
+							numColumns={windowWidth > 425 ? 3 : 2}
 							keyExtractor={item => item.name}
 						/>
 					}

@@ -1,6 +1,6 @@
 {
   "name": "@h5mag/h5mag",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -32,6 +32,7 @@
     "react-native-fs": "^2.19.0",
     "react-native-gesture-handler": "^2.3.2",
     "react-native-linear-gradient": "^2.5.6",
+    "react-native-media-query": "^1.0.11",
     "react-native-reanimated": "^2.7.0",
     "react-native-safe-area-context": "^4.2.4",
     "react-native-screens": "^3.13.1",

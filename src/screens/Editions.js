@@ -10,13 +10,15 @@ import { useNetInfo } from '@react-native-community/netinfo';
 import DbQuery from '../util/Queries';
 import { useFocusEffect } from '@react-navigation/native';
 import H5mag from '@h5mag/react-native-h5mag';
-import { useQueryClient } from 'react-query';
+import { useQueryClient, useQuery } from 'react-query';
 
 export default function Editions({ navigation, route }) {
 	const { projectDomain, projectThumbnail } = route.params;
 
 	const netInfo = useNetInfo();
 	const queryClient = useQueryClient();
+	const { data: themeTextColor } = useQuery('colorScheme.textColor');
+	const { data: themeBackgroundColor } = useQuery('colorScheme.backgroundColor');
 
 	const [isLoading, setLoading] = useState(true);
 	const [projectWithEditions, setProjectWithEditions] = useState();
@@ -90,16 +92,16 @@ export default function Editions({ navigation, route }) {
 		queryClient.setQueryData(['editions.status', tempData[index].href], () => { return tempData[index].status; });
 	};
 
-	const renderItem = ({ item }) => (
-		<Edition item={item} projectDomain={projectDomain} navigation={navigation} route={route} onChangeEdition={onChangeEdition} onChangeDownloaded={onChangeEdition} onChangeFavorite={onChangeEdition} />
+	const renderItem = ({ item, index }) => (
+		<Edition item={item} index={index} projectDomain={projectDomain} navigation={navigation} route={route} onChangeEdition={onChangeEdition} onChangeDownloaded={onChangeEdition} onChangeFavorite={onChangeEdition} />
 	);
 
 	if (netInfo.isConnected?.toString() !== 'true') {
-		return (<Text style={[styles.mt2, styles.ml2]}>No internet connection</Text>);
+		return (<Text style={[styles.mt2, styles.ml2, themeTextColor]}>No internet connection</Text>);
 	}
 
 	return (
-		<View style={styles.editionContainer}>
+		<View style={[themeBackgroundColor, styles.editionContainer]}>
 			<StatusBar barStyle="light-content" backgroundColor={sv.primaryColor} />
 			{isLoading ? <ActivityIndicator style={styles.mt5} /> : (
 				<FlatList
@@ -107,8 +109,10 @@ export default function Editions({ navigation, route }) {
 						<View style={{}}>
 							{projectThumbnail && <Image source={{ uri: projectThumbnail }} style={styles.editionPhoto} />}
 							<View style={{ marginHorizontal: sv.m3, marginBottom: sv.m2 }}>
-								<Text style={[styles.header, !projectThumbnail && styles.mt3]}>{capitalize(projectWithEditions.title)}</Text>
-								<Text style={styles.subheader}>Project description here</Text>
+								<Text style={[styles.header, !projectThumbnail && styles.mt3, themeTextColor]}>
+									{capitalize(projectWithEditions.title)}
+								</Text>
+								<Text style={[styles.projectSubheader, themeTextColor]}>Project description here</Text>
 							</View>
 						</View>
 					}
@@ -116,7 +120,8 @@ export default function Editions({ navigation, route }) {
 					data={projectWithEditions.editions}
 					extraData={projectWithEditions}
 					renderItem={renderItem}
-					keyExtractor={item => item.title} />
+					keyExtractor={item => item.title}
+				/>
 			)}
 		</View>
 	);

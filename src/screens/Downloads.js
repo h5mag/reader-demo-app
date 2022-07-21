@@ -1,18 +1,18 @@
 import Icon from 'react-native-vector-icons/Ionicons'; Icon.loadFont();
 import React, { useEffect, useState, useCallback } from 'react';
-import { StatusBar, View, Text, Pressable, ActivityIndicator, Image } from 'react-native';
-import EditionMenu from '../components/EditionMenu';
-import EditionIcon from '../components/EditionIcon';
+import { StatusBar, View, Text, ActivityIndicator } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
 import DbQuery from '../util/Queries';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from '../css/style';
 import sv from '../css/variables';
-import { goToEdition } from '../util/Editions';
-import { useQueryClient } from 'react-query';
+import Edition from '../components/Edition';
+import { useQueryClient, useQuery } from 'react-query';
 
 export default function Downloads({ navigation, route }) {
 	const queryClient = useQueryClient();
+	const { data: themeTextColor } = useQuery('colorScheme.textColor');
+	const { data: themeBackgroundColor } = useQuery('colorScheme.backgroundColor');
 
 	const [isLoading, setLoading] = useState(true);
 	const [editions, setEditions] = useState([]);
@@ -43,48 +43,31 @@ export default function Downloads({ navigation, route }) {
 	};
 
 	/**
-	 * Update edition downloaded state.
+	 * Update edition states.
 	 * @param {edition} edition
 	 */
-	const onChangeDownloaded = (edition) => {
+	const onChangeEdition = (edition) => {
 		queryClient.setQueryData(['editions.status', edition.href], () => { return edition.status; });
 		queryClient.setQueryData(['editions.favorite', edition.href], () => { return edition.favorite; });
 
 		getDownloadedEditions();
 	};
 
-	const renderItem = ({ item }) => (
-		<View style={styles.editionBlock}>
-			<Pressable onPress={() => goToEdition(item, item.projectDomain, navigation)} style={[styles.flexRowContainer, styles.spaceBetween, styles.alignCenter]}>
-				<Image source={{ uri: item.screenshot_src }} style={styles.editionPhotoSmall} />
-
-				<EditionIcon item={item} />
-
-				<View style={styles.editionBlockDescription}>
-					<Text style={styles.editionTitle}>
-						{item.title}
-					</Text>
-					<Pressable onPress={() => navigation.navigate('Editions', { projectDomain: item.projectDomain })}>
-						<Text>In {item.projectDomain} <Icon name={'chevron-forward'} size={12} color={sv.primaryColor} /></Text>
-					</Pressable>
-				</View>
-
-				<EditionMenu edition={item} projectDomain={item.projectDomain} navigation={navigation} route={route} onChangeFavorite={onChangeDownloaded} onChangeDownloaded={onChangeDownloaded} />
-			</Pressable>
-		</View>
+	const renderItem = ({ item, index }) => (
+		<Edition item={item} index={index} fromDownloads={true} projectDomain={item.projectDomain} navigation={navigation} route={route} onChangeDownloaded={onChangeEdition} onChangeFavorite={onChangeEdition}/>
 	);
 
 	return (
-		<View style={styles.editionContainer}>
+		<View style={[themeBackgroundColor, styles.editionContainer]}>
 			<StatusBar barStyle="light-content" backgroundColor={sv.primaryColor} />
 			{isLoading ? <ActivityIndicator /> : (
 				<FlatList
 					ListHeaderComponent={
-						<Text style={[styles.header, styles.mb2, styles.ml2, styles.mt3]}>
+						<Text style={[styles.header, styles.mb2, styles.ml2, styles.mt3, themeTextColor]}>
 							Downloads
 						</Text>
 					}
-					ListEmptyComponent={<Text style={[styles.black, styles.ml2]}>No downloads were found...</Text>}
+					ListEmptyComponent={<Text style={[themeTextColor, styles.ml2]}>No downloads were found...</Text>}
 					data={editions}
 					renderItem={renderItem}
 					keyExtractor={item => item.href}

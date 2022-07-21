@@ -2,10 +2,13 @@ import { primaryColor, lightGray, gray } from '../../config';
 
 const sv = {
 	// Colors
-	white: '#fff',
+	white: '#ffffff',
 	black: '#000000',
+	darkerGray: '#222222',
+	darkGray: '#333333',
 	gray: gray,
 	lightGray: lightGray,
+	veryLightGray: '#fafafa',
 	primaryColor: primaryColor,
 
 	// Dimensions
